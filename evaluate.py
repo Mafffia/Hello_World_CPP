@@ -9,7 +9,7 @@ import config
 from utils import preprocess
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
+#device = "cpu"
 parser = argparse.ArgumentParser()
 parser.add_argument('--env', choices=['CartPole-v0'])
 parser.add_argument('--path', type=str, help='Path to stored DQN model.')
@@ -65,7 +65,7 @@ if __name__ == '__main__':
         env = gym.wrappers.Monitor(env, './video/', video_callable=lambda episode_id: True, force=True)
 
     # Load model from provided path.
-    dqn = torch.load(args.path, map_location=torch.device('cpu'))
+    dqn = torch.load(args.path, map_location=torch.device(device))
     dqn.eval()
 
     mean_return = evaluate_policy(dqn, env, env_config, args, args.n_eval_episodes, render=args.render and not args.save_video, verbose=True)

@@ -6,7 +6,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
+print(device)
 
 class ReplayMemory:
     def __init__(self, capacity):
@@ -36,8 +36,10 @@ class ReplayMemory:
 
 class DQN(nn.Module):
     def __init__(self, env_config):
-        super(DQN, self).__init__()
+        
 
+        super(DQN, self).__init__()
+        
         # Save hyperparameters needed in the DQN class.
         self.batch_size = env_config["batch_size"]
         self.gamma = env_config["gamma"]
@@ -48,16 +50,18 @@ class DQN(nn.Module):
         # LY add
         self.step = 0
 
-        self.fc1 = nn.Linear(4, 256)
-        self.fc2 = nn.Linear(256, self.n_actions)
-
+        self.fc1 = nn.Linear(4, 256).to(device)
+        self.fc1
+        self.fc2 = nn.Linear(256, self.n_actions).to(device)
+        self.fc2
         self.relu = nn.ReLU()
         self.flatten = nn.Flatten()
 
     def forward(self, x):
         """Runs the forward pass of the NN depending on architecture."""
-        x = self.relu(self.fc1(x))
-        x = self.fc2(x)
+        
+        x = self.relu(self.fc1(x)).to(device)
+        x = self.fc2(x).to(device)
 
         return x
 
@@ -88,7 +92,7 @@ class DQN(nn.Module):
             shape = (len(observation), 1)
             action = torch.ones(shape)
             q = self.forward(observation)
-            q = q.detach().numpy()
+            q = q.detach().cpu().numpy()
             for i in range(len(observation)):
                 action[i][0] = int(np.nanargmax(q[i, :], axis=0))
         return action
@@ -104,7 +108,7 @@ def optimize(dqn, target_dqn, memory, optimizer):
 
     # rm = ReplayMemory(capacity=env_config["memo"])
     # sample = torch.tensor(memory.sample(dqn.batch_size)).to(device)
-    sample = memory.sample(dqn.batch_size)
+    sample = memory.sample(dqn.batch_size).to(device)
 
     # TODO: Sample a batch from the replay memory and concatenate so that there are
     #       four tensors in total: observations, actions, next observations and rewards.
