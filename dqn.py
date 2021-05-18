@@ -82,7 +82,7 @@ class DQN(nn.Module):
             shape = (len(observation), 1)
             action = torch.ones(shape)
             q = self.forward(observation)
-            q = q.detach().numpy()
+            q = q.detach().cpu().numpy()
             for i in range(len(observation)):
                 if np.random.random_sample() <= eps:
                     action[i][0] = int(np.random.choice(range(self.n_actions)))
@@ -108,7 +108,7 @@ def optimize(dqn, target_dqn, memory, optimizer):
 
     # rm = ReplayMemory(capacity=env_config["memo"])
     # sample = torch.tensor(memory.sample(dqn.batch_size)).to(device)
-    sample = memory.sample(dqn.batch_size).to(device)
+    sample = memory.sample(dqn.batch_size)
 
     # TODO: Sample a batch from the replay memory and concatenate so that there are
     #       four tensors in total: observations, actions, next observations and rewards.
@@ -116,8 +116,8 @@ def optimize(dqn, target_dqn, memory, optimizer):
     #       Note that special care is needed for terminal transitions!
     obs = torch.cat(sample[0], dim=0).to(device)
     act = torch.cat(sample[1], dim=0).to(device)
-    q_all = dqn.forward(obs)
-    q_values = torch.gather(q_all, dim=1, index=act.long())
+    q_all = dqn.forward(obs).to(device)
+    q_values = torch.gather(q_all, dim=1, index=act.long()).to(device)
 
     # TODO: Compute the current estimates of the Q-values for each state-action
     #       pair (s,a). Here, torch.gather() is useful for selecting the Q-values
@@ -126,15 +126,15 @@ def optimize(dqn, target_dqn, memory, optimizer):
     next_obs = sample[2]
     reward = sample[3]
     shape = (len(next_obs), 1)
-    q_value_targets = torch.ones(shape)
+    q_value_targets = torch.ones(shape).to(device)
     for i in range(len(next_obs)):
         if torch.is_tensor(next_obs[i]) is False:
             q_value_targets[i] = reward[i]
         else:
-            q = target_dqn.forward(next_obs[i])
-            max_q_target = torch.max(q)
-            q_value_targets[i] = reward[i]+target_dqn.gamma*max_q_target
-
+            q = target_dqn.forward(next_obs[i]).to(device)
+            max_q_target = torch.max(q).to(device)
+            #q_value_targets[i] = reward[i]+target_dqn.gamma*max_q_target
+            q_value_targets[i] =  torch.tensor(reward[i]).to(device)+target_dqn.gamma*max_q_target
     # TODO: Compute the Q-value targets. Only do this for non-terminal transitions!
     
     # Compute loss.
